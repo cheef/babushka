@@ -1,8 +1,12 @@
-dep 'ruby' do
+dep 'ruby runtime' do
   met? {
     in_path? ['ruby >= 1.8.6', 'irb']
   }
-  requires_when_unmet {
+  requires_when_unmet 'ruby'
+end
+
+dep 'ruby' do
+  requires {
     on :osx, 'ruby.external'
     on :ubuntu, 'ruby.managed'
   }
