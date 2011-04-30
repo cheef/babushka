@@ -8,7 +8,7 @@ end
 dep 'ruby' do
   requires {
     on :osx, 'ruby.external'
-    on :ubuntu, 'ruby.managed'
+    otherwise 'ruby.managed'
   }
 end
 
