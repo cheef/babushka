@@ -1,3 +1,5 @@
+# coding: utf-8
+
 require 'singleton'
 require 'yaml'
 require 'cloudservers'
@@ -15,7 +17,10 @@ class VM
   SERVER_NAME = 'babushka-specs'
 
   def babushka task
-    run "babushka '#{task}' --defaults --no-colour"
+    run("babushka \"#{task}\" --defaults --no-colour").tap {|result|
+      # Fetch the debug log if the dep failed
+      run "cat ~/.babushka/logs/\"#{task}\"" unless result
+    }
   end
 
   def run cmd, user = 'root'
@@ -93,4 +98,13 @@ class VM
   def public_key
     Dir.glob(File.expand_path("~/.ssh/id_[dr]sa.pub")).first
   end
+end
+
+RSpec::Matchers.define :meet do |expected|
+  match {|vm|
+    vm.babushka(expected).should =~ /^\} ✓ #{Regexp.escape(expected)}\z/
+  }
+  failure_message_for_should {|vm|
+    "The '#{expected}' dep couldn't bet met."
+  }
 end
