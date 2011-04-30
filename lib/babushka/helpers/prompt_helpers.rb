@@ -83,7 +83,7 @@ module Babushka
     def read_value_from_prompt message, opts, &block
       value = nil
       10.times do
-        value = read_from_prompt(opts[:prompt].end_with(' '), opts[:choices]).chomp
+        value = read_from_prompt(opts[:prompt].end_with(' '), opts[:choices]).try(:chomp)
         value = opts[:default] if value.blank? && !(opts[:default] && opts[:default].to_s.empty?)
 
         error_message = if opts[:choices] && !value.in?(opts[:choices])
@@ -105,23 +105,45 @@ module Babushka
       value
     end
 
-    def read_from_prompt prompt, choices = nil
-      require 'readline'
+    module ReadlinePrompt
+      def read_from_prompt prompt, choices = nil
+        using_libedit = !Readline.respond_to?(:vi_editing_mode)
+        Readline.completion_append_character = nil
 
-      if choices.nil?
-        Readline.completion_proc = L{|str| Dir["#{str}*"] }
-      else
-        Readline.completion_proc = L{|choice| choices.select {|i| i.starts_with? choice } }
+        Readline.completion_proc = if !choices.nil?
+          L{|str| choices.select {|i| i.starts_with? choice } }
+        else
+          L{|str|
+            Dir["#{str}*"].map {|path|
+              path.end_with(if File.directory?(path)
+                using_libedit ? '' : '/' # libedit adds its own trailing slash to dirs
+              else
+                ' ' # Add a trailing space to files
+              end)
+            }
+          }
+        end
+
+        # This is required in addition to the call in bin/babushka.rb for
+        # interrupts to work during Readline calls.
+        Base.exit_on_interrupt!
+
+        Readline.readline(prompt, true).try(:strip)
       end
+    end
 
-      # This is required in addition to the call in bin/babushka.rb for
-      # interrupts to work during Readline calls.
-      Base.exit_on_interrupt!
+    module GetsPrompt
+      def read_from_prompt prompt, choices = nil
+        print prompt
+        $stdin.gets.try(:strip)
+      end
+    end
 
-      Readline.readline prompt, true
-    rescue LoadError => e
-      print prompt
-      $stdin.gets
+    begin
+      require 'readline'
+      include ReadlinePrompt
+    rescue LoadError
+      include GetsPrompt
     end
   end
 end

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 
 module Babushka
   class Base
@@ -6,7 +6,6 @@ module Babushka
 
     # Check structs.rb for the definitions of Verb, Opt and Arg.
     Opts = [
-      Opt.new(:quiet, '-q', '--quiet', "Run with minimal logging", true, []),
       Opt.new(:debug, '-d', '--debug', "Show more verbose logging, and realtime shell command output", true, [])
     ]
     Verbs = [
@@ -59,9 +58,11 @@ module Babushka
         print_choices_for 'options', (help_verb.opts + help_verb.args)
       end
       log "\n"
+      true
     end
     def handle_version verb
       print_version
+      true
     end
     def handle_list verb
       to_list = verb.opts.empty? ? :deps : verb.opts.first.def.name
